@@ -11,7 +11,7 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(800, 800); // Tamaño del canvas
+  createCanvas(1080, 1920); // Tamaño del canvas para móvil
   background(0); // Fondo negro
 
   fft = new p5.FFT(); // Inicializa la FFT para análisis de audio
@@ -20,6 +20,8 @@ function setup() {
   playButton = createButton('Reproducir');
   playButton.position(10, 10); // Posición inicial del botón
   playButton.mousePressed(togglePlay); // Asocia la función de reproducción
+  playButton.size(200, 100); // Tamaño del botón más grande
+  playButton.style('font-size', '24px'); // Texto del botón más grande
   
   // Crea los círculos con posiciones iniciales cerca del centro
   for (let i = 0; i < numCircles; i++) {
@@ -105,7 +107,4 @@ class Circle {
     ellipse(this.x, this.y, this.r * 1.5, this.r * 1.5); // Aumenta el tamaño
   }
 }
-
-
-
 
