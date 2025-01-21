@@ -1,49 +1,71 @@
-let circles = [];
-let numCircles = 60; // Número de círculos
 let song;
 let fft;
+let numCircles = 60; // Número de círculos
+let circles = [];
+let highlightedCircle = null; // Variable para el círculo destacado
+let playButton; // Botón de reproducción
 
 function preload() {
-  song = loadSound('beethoven.mp3'); // Asegúrate de que el archivo de audio esté en el mismo directorio
+  // Carga el archivo de audio
+  song = loadSound("beethoven.mp3"); // Asegúrate de que el archivo esté en la carpeta
 }
 
 function setup() {
-  createCanvas(800, 800);
+  createCanvas(800, 800); // Tamaño del canvas
   background(0); // Fondo negro
 
-  fft = new p5.FFT();
-  song.setVolume(0.8);
-
-  // Crear los círculos iniciales
+  fft = new p5.FFT(); // Inicializa la FFT para análisis de audio
+  
+  // Crea el botón de reproducción
+  playButton = createButton('Reproducir');
+  playButton.position(10, 10); // Posición inicial del botón
+  playButton.mousePressed(togglePlay); // Asocia la función de reproducción
+  
+  // Crea los círculos con posiciones iniciales cerca del centro
   for (let i = 0; i < numCircles; i++) {
-    let x = width / 2;
-    let y = random(-200, 0);
-    let r = random(15, 30);
-    circles.push(new Circle(x, y, r));
+    let radius = random(20, 50); // Tamaño inicial
+    let x = width / 2; // Línea vertical
+    let y = random(-200, 0); // Posición inicial fuera de la pantalla
+    circles.push(new Circle(x, y, radius));
   }
-
-  // Crear botón de audio
-  let playButton = createButton('Play Audio');
-  playButton.position(20, 20);
-  playButton.mousePressed(() => {
-    if (song.isPlaying()) {
-      song.pause();
-      playButton.html('Play Audio');
-    } else {
-      song.play();
-      playButton.html('Pause Audio');
-    }
-  });
 }
 
 function draw() {
-  background(0, 50); // Hacer el rastro más sutil
-  fft.analyze();
+  background(0, 80); // Fondo con transparencia leve para rastro sutil
 
-  for (let i = 0; i < circles.length; i++) {
-    let energy = fft.getEnergy("bass") + fft.getEnergy("treble");
-    circles[i].update(energy);
-    circles[i].display();
+  if (song.isPlaying()) {
+    let spectrum = fft.analyze(); // Analiza el espectro de audio
+    
+    highlightedCircle = null; // Resetea el círculo destacado en cada frame
+        
+    // Actualiza y dibuja los círculos
+    for (let i = 0; i < numCircles; i++) {
+      let bandValue = spectrum[i % spectrum.length]; // Asocia cada círculo con una banda
+      circles[i].update(bandValue);
+
+      // Si la intensidad de la banda es alta, destaca el círculo
+      if (bandValue > 200 && (highlightedCircle === null || bandValue > highlightedCircle.intensity)) {
+        highlightedCircle = circles[i]; // Selecciona el círculo más intenso
+        highlightedCircle.intensity = bandValue; // Guarda la intensidad
+      }
+
+      circles[i].display();
+    }
+
+    // Destaca el círculo con mayor intensidad
+    if (highlightedCircle) {
+      highlightedCircle.highlight();
+    }
+  }
+}
+
+function togglePlay() {
+  if (song.isPlaying()) {
+    song.pause();
+    playButton.html('Reproducir');
+  } else {
+    song.play();
+    playButton.html('Pausar'); 
   }
 }
 
@@ -52,22 +74,35 @@ class Circle {
     this.x = x;
     this.y = y;
     this.r = r;
-    this.speed = random(1, 3);
+    this.speedY = random(1, 4); // Velocidad de movimiento
+    this.intensity = 0; // Intensidad asociada al círculo
   }
 
   update(audioValue) {
-    this.r = map(audioValue, 0, 255, 15, 60); // Tamaños grandes basados en audio
-    this.y += this.speed + map(audioValue, 0, 255, 0.5, 3);
+    // Ajusta el tamaño según la intensidad del audio
+    this.r = map(audioValue, 0, 255, 10, 100);
+    
+    // Mueve el círculo hacia abajo
+    this.y += this.speedY + map(audioValue, 0, 255, 1, 5);
 
+    // Si el círculo sale de la pantalla, reinícialo
     if (this.y > height) {
       this.y = random(-200, 0);
+      this.x = width / 2; // Mantén la línea vertical por defecto
     }
   }
 
   display() {
     noStroke();
-    fill(255, 150); // Color blanco con transparencia
-    ellipse(this.x, this.y, this.r, this.r);
+    fill(255, 200); // Blanco con transparencia
+    ellipse(this.x, this.y, this.r, this.r); // Dibuja el círculo
+  }
+
+  highlight() {
+    // Separación horizontal para destacar
+    this.x += random(-50, 50); // Mueve el círculo destacado a los lados
+    fill(255); // Color blanco sólido
+    ellipse(this.x, this.y, this.r * 1.5, this.r * 1.5); // Aumenta el tamaño
   }
 }
 
